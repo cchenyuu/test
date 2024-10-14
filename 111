@@ -1,0 +1,460 @@
+<template>
+  <div id="app">
+    <e-charts class="chart" :option="option"  />
+  </div>
+</template>
+
+<script>
+import * as echarts from 'echarts';
+
+// 基于准备好的dom，初始化echarts实例
+var myChart = echarts.init(document.getElementById('main'));
+// 绘制图表
+myChart.setOption({
+  title: {
+    text: 'ECharts 入门示例'
+  },
+  tooltip: {},
+  xAxis: {
+    data: ['衬衫', '羊毛衫', '雪纺衫', '裤子', '高跟鞋', '袜子']
+  },
+  yAxis: {},
+  series: [
+    {
+      name: '销量',
+      type: 'bar',
+      data: [5, 20, 36, 10, 10, 20]
+    }
+  ]
+});
+</script>
+
+<style lang="css" scoped>
+.chart {
+  width: 100%;
+  height: 500px;
+}
+</style>
+
+
+
+
+<template>
+  <div>
+    <div ref="lineChart" style="width: 600px; height: 400px;"></div>
+    <button @click="toggleUpdate">{{ isUpdating ? '停止更新' : '开始更新' }}</button>
+
+    <!-- 表格部分 -->
+    <table>
+      <thead>
+        <tr>
+          <th>时间</th>
+          <th>温度</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(row, index) in tableData" :key="index">
+          <td>{{ row.date }}</td>
+          <td>{{ row.value }}℃</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+<script>
+import * as echarts from 'echarts';
+
+export default {
+  data() {
+    return {
+      chartInstance: null,
+      tableData: [], // 存储表格数据
+      isUpdating: false, // 控制数据更新状态
+      updateInterval: null // 定时器
+    };
+  },
+  mounted() {
+    this.initChart(); 
+  },
+  methods: {
+    // 初始化图表
+    initChart() {
+      this.chartInstance = echarts.init(this.$refs.lineChart);
+
+      const initialData = {
+        xAxis: ['2023-01-01', '2023-01-02', '2023-01-03', '2023-01-04', '2023-01-05'],
+        series: [10, 22, 28, 23, 19]
+      };
+
+      const option = {
+        title: { text: ' 温度和时间' },
+        xAxis: { type: 'category', data: initialData.xAxis },
+        yAxis: {
+          type: 'value',
+          boundaryGap: [0, '100%'],
+          axisLabel: {
+            formatter: function (value) {
+              return Math.round(value); // 只显示整数部分
+            }
+          },
+        },
+        series: [{ data: initialData.series, type: 'line', smooth: true }]
+      };
+
+      this.chartInstance.setOption(option);
+
+      // 初始化表格数据
+      this.updateTableData(initialData);
+    },
+    // 动态更新图表和表格数据
+    updateChartData() {
+      const option = this.chartInstance.getOption();
+      const newDate = this.generateNewDate(option.xAxis[0].data);
+      const newValue = this.generateRandomValue(option.series[0].data.slice(-1)[0]); // 获取前一个值
+
+      // 更新图表的数据
+      option.xAxis[0].data.push(newDate);
+      option.series[0].data.push(newValue);
+
+      // 限制数据长度
+      if (option.xAxis[0].data.length > 10) {
+        option.xAxis[0].data.shift();
+        option.series[0].data.shift();
+      }
+
+      // 更新图表
+      this.chartInstance.setOption(option);
+
+      // 更新表格
+      this.updateTableData({
+        xAxis: option.xAxis[0].data,
+        series: option.series[0].data
+      });
+    },
+    // 同步表格数据
+    updateTableData(chartData) {
+      this.tableData = chartData.xAxis.map((date, index) => ({
+        date: date,
+        value: chartData.series[index]
+      }));
+    },
+    // 生成随机值
+    generateRandomValue(previousValue) {
+      // 基于前一个值生成一个新的值，减小波动
+      const randomChange = Math.random() * 5 - 2.5; // 生成一个 -2.5 到 +2.5 之间的随机变化量
+      const newValue = previousValue + randomChange;
+      return Math.round(Math.min(Math.max(newValue, 0), 40)); // 四舍五入并确保值在 0 到 50 之间
+    },
+    // 生成新日期
+    generateNewDate(existingDates) {
+      const lastDate = existingDates[existingDates.length - 1];
+      const newDate = new Date(lastDate);
+      newDate.setDate(newDate.getDate() + 1);
+
+      const yyyy = newDate.getFullYear();
+      const mm = String(newDate.getMonth() + 1).padStart(2, '0'); // 月份从0开始，需要+1
+      const dd = String(newDate.getDate()).padStart(2, '0');
+
+      return `${yyyy}-${mm}-${dd}`;
+    },
+    // 启动或停止动态更新
+    toggleUpdate() {
+      this.isUpdating = !this.isUpdating;
+
+      if (this.isUpdating) {
+        // 每秒更新一次图表数据
+        this.updateInterval = setInterval(this.updateChartData, 1000);
+      } else {
+        clearInterval(this.updateInterval);
+      }
+    }
+  },
+  beforeDestroy() {
+    // 组件销毁时清除定时器
+    clearInterval(this.updateInterval);
+  }
+};
+</script>
+
+<style scoped>
+h1 {
+  color: #2c3e50;
+  font-size: 24px;
+}
+p {
+  font-size: 20px;
+}
+table {
+  margin-top: 20px;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+table, th, td {
+  border: 1px solid #ccc;
+}
+
+th, td {
+  padding: 8px;
+  text-align: center;
+}
+
+button {
+  margin: 20px 0;
+  padding: 10px 15px;
+  font-size: 16px;
+  cursor: pointer;
+  text-align: center;
+  border: none;
+  border-radius: 5px;
+}
+</style>
+
+
+
+
+<template>
+  <div id="app">
+    <button @click="connectMqtt">连接 MQTT</button>
+    <button @click="disconnectMqtt">断开 MQTT 连接</button><br>
+    <button @click="selectChart('temperature')">温度</button>
+    <button @click="selectChart('humidity')">湿度</button>
+    <button @click="selectChart('co2')">二氧化碳</button>
+    <button @click="selectChart('illuminance')">照度</button>
+
+    <!-- 温度变化图表容器 -->
+    <div id="temperatureChart" style="height: 300px; margin-top: 20px;"></div>
+    <!-- 湿度变化图表容器 -->
+    <div id="humidityChart" style="height: 300px; margin-top: 20px;"></div>
+    <!-- 二氧化碳变化图表容器 -->
+    <div id="co2Chart" style="height: 300px; margin-top: 20px;"></div>
+    <!-- 照度变化图表容器 -->
+    <div id="illuminanceChart" style="height: 300px; margin-top: 20px;"></div>
+
+    <div v-if="tableData.length > 0" style="max-height: 300px; overflow-y: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>温度 (℃)</th>
+            <th>湿度 (%)</th>
+            <th>CO2 (ppm)</th>
+            <th>照度 (lux)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(row, index) in reversedTableData" :key="index">
+            <td>{{ row.temperature }}</td>
+            <td>{{ row.humidity }}</td>
+            <td>{{ row.co2 }}</td>
+            <td>{{ row.illuminance }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p v-else>没有数据</p>
+  </div>
+</template>
+
+<script>
+import mqtt from 'mqtt';
+import * as echarts from 'echarts';
+
+export default {
+  name: 'App',
+  data() {
+    return {
+      client: null,
+      parkTopic: "/PlantFactory/monitor",
+      tableData: [],
+      temperatureChartInstance: null,
+      humidityChartInstance: null,
+      co2ChartInstance: null,
+      illuminanceChartInstance: null,
+      lastTime: new Date(),
+    };
+  },
+  computed: {
+    reversedTableData() {
+      return this.tableData.slice().reverse();
+    }
+  },
+  methods: {
+    connectMqtt() {
+      console.log("连接 MQTT 服务器...");
+      const wsUrl = "ws://120.77.250.8:8083/mqtt";
+      this.client = mqtt.connect(wsUrl, {
+        username: 'PFWeb', 
+        password: 'SCNUWEB',
+        keepalive: 15
+      });
+
+      this.client.on("connect", () => {
+        console.log("MQTT 连接成功", Date.now());
+        this.client.subscribe(this.parkTopic);
+      });
+
+      this.client.on("message", (topic, message) => {
+        this.onMessage(topic, message);
+      });
+
+      this.client.on("error", (error) => {
+        console.error("MQTT 连接错误:", error);
+      });
+    },
+    onMessage(topic, message) {
+      try {
+        const msg = JSON.parse(message.toString());
+        if (msg.length === 0 || !msg[0].params) {
+          console.error("Received message does not contain 'params':", msg);
+          return;
+        }
+        const params = msg[0].params;
+        this.updateTableData(params);
+      } catch (error) {
+        console.error("解析消息失败:", error);
+      }
+    },
+    updateTableData(params) {
+      const newRow = {
+        temperature: params.temperature,
+        humidity: params.humidity,
+        co2: params.co2,
+        illuminance: params.Illuminance
+      };
+      this.tableData.push(newRow);
+      this.updateCharts(); // 更新图表数据
+    },
+    initCharts() {
+      this.temperatureChartInstance = echarts.init(document.getElementById('temperatureChart'));
+      this.humidityChartInstance = echarts.init(document.getElementById('humidityChart'));
+      this.co2ChartInstance = echarts.init(document.getElementById('co2Chart'));
+      this.illuminanceChartInstance = echarts.init(document.getElementById('illuminanceChart'));
+      this.updateCharts(); // 初始化时更新图表数据
+    },
+    updateCharts() {
+      // 更新温度图表数据
+      const temperatureOption = {
+        xAxis: {
+          type: 'category',
+          data: this.tableData.map((row, index) => this.generateNewTime(index))
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [{
+          data: this.tableData.map(row => row.temperature),
+          type: 'line',
+          symbol: 'none' // 去掉标记原点
+        }]
+      };
+      this.temperatureChartInstance.setOption(temperatureOption);
+
+      // 更新湿度图表数据
+      const humidityOption = {
+        xAxis: {
+          type: 'category',
+          data: this.tableData.map((row, index) => this.generateNewTime(index))
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [{
+          data: this.tableData.map(row => row.humidity),
+          type: 'line',
+          symbol: 'none' // 去掉标记原点
+        }]
+      };
+      this.humidityChartInstance.setOption(humidityOption);
+      const co2Option = {
+        xAxis: {
+          type: 'category',
+          data: this.tableData.map((row, index) => this.generateNewTime(index))
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [{
+          data: this.tableData.map(row => row.co2),
+          type: 'line',
+          symbol: 'none' // 去掉标记原点
+        }]
+      };
+      if (this.co2ChartInstance) {
+        this.co2ChartInstance.setOption(co2Option);
+      }
+
+      // 更新照度图表数据
+      const illuminanceOption = {
+        xAxis: {
+          type: 'category',
+          data: this.tableData.map((row, index) => this.generateNewTime(index))
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [{
+          data: this.tableData.map(row => row.illuminance),
+          type: 'line',
+          symbol: 'none' // 去掉标记原点
+        }]
+      };
+      if (this.illuminanceChartInstance) {
+        this.illuminanceChartInstance.setOption(illuminanceOption);
+      }
+    },
+    
+    disconnectMqtt() {
+      if (this.client) {
+        this.client.end();
+        console.log("MQTT 连接已断开");
+      }
+    },
+    generateNewTime(index) {
+      const currentTime = new Date();
+      if (index === 0) {
+        this.lastTime = currentTime;
+      } else {
+        this.lastTime = new Date(this.lastTime.getTime() + 30 * 60 * 1000); // 增加30分钟
+      }
+      const hour = this.lastTime.getHours().toString().padStart(2, '0');
+      const minute = this.lastTime.getMinutes().toString().padStart(2, '0');
+      return `${hour}:${minute}`;
+    }
+  },
+  mounted() {
+    this.initCharts(); // 确保图表只初始化一次
+  },
+  beforeUnmount() {
+    if (this.temperatureChartInstance) {
+      this.temperatureChartInstance.dispose();
+    }
+    if (this.humidityChartInstance) {
+      this.humidityChartInstance.dispose();
+    }
+    if (this.client) {
+      this.client.end();
+    }
+  }
+};
+</script>
+
+<style scoped>
+table {
+  margin-top: 20px;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+table,
+th,
+td {
+  border: 1px solid #ccc;
+}
+
+th,
+td {
+  padding: 8px;
+  text-align: left;
+}
+</style>
